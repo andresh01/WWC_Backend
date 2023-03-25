@@ -1,0 +1,19 @@
+{
+  "name": "paquete",
+  "version": "1.0.0",
+  "description": "creando primer paquete",
+  "main": "index.js",
+  "scripts": {
+    "dev": "node --watch index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "javascript",
+    "node"
+  ],
+  "author": "Andres Henao",
+  "license": "ISC",
+  "dependencies": {
+    "node-fetch-commonjs": "^3.2.4"
+  }
+}
