@@ -62,6 +62,18 @@ app.get("/api/v1/products/:productId", (req, res)  => {
 app.post("/api/v1/products", (req, res) => {
     const product = req.body;
     products.push(product);
+    res.json(products)
+})
+
+app.delete("/api/v1/products/:productId", (req, res) => {
+    const { productId } = req.params;
+    const productIdInt = parseInt(productId);
+    console.log(productIdInt);
+    const indexProduct = products.findIndex((product)=> product.id === productIdInt);
+    if (indexProduct != -1) {
+       const product = products.splice(indexProduct,1);
+    }
+    res.json(products);
 })
 
 app.listen(PORT, () => {
