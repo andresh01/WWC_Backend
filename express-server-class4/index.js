@@ -45,15 +45,16 @@ app.get("/", (req, res) => {
 app.get("/api/v1/products", (req, res, next)  => {
     console.log("hola");
     next();
-    res.json(products);
 },
 (req, res) => {
     res.json(products);
+    console.log("hola2");
 })
 
 app.get("/api/v1/products/:productId", (req, res)  => {
     const { productId } = req.params; //destructuring
     console.log(req.params);
+    console.log(productId);
     const productIdInt = parseInt(productId);
     const product = products.find((product) => product.id === productIdInt )
     res.json(product);
@@ -74,6 +75,10 @@ app.delete("/api/v1/products/:productId", (req, res) => {
        const product = products.splice(indexProduct,1);
     }
     res.json(products);
+})
+
+app.put("/api/v1/products/:productId", (req, res) => {
+     
 })
 
 app.listen(PORT, () => {
