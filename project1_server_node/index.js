@@ -93,10 +93,11 @@ function deleteProduct(req, res) {
 
         const { productId } = req.params;
         const idInt = parseInt(productId);
+        let productIndex = productExist(objProducts, idInt)
 
         if (productExist(objProducts, idInt) != -1) {
+            res.json(`Product ${objProducts.products[productIndex].name} was delete`);
             objProducts.products.splice(productIndex, 1);
-            res.json(objProducts);
             const productsString = JSON.stringify(objProducts)
 
             const writeFile = async () => {
