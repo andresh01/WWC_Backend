@@ -31,37 +31,54 @@ app.delete("/api/v1/products/:productId", (req, res) => {
     deleteProduct(req, res);
 })
 
-app.patch("/api/v1/products/", (req, res) => {
+
+app.patch("/api/v1/products/:productId", (req, res) => {
     updateProduct(req, res);
 })
 
+
+
 // Read file .txt where is the products and it change from string to object /return a promise object
 const readFile = async () => {
+    const filePath = path.resolve(`${__dirname}/products.txt`); //return a string with absolute path 
+    const data = await fs.promises.readFile(filePath, 'utf-8'); //it reads the content in path filePath and display it in utf-8 format
+    return JSON.parse(data); //change format from string to object
+}
+
+// Write in file .txt the content of variable productsString passed like parameter
+const writeFile = async (productsString) => {
     const filePath = path.resolve(`${__dirname}/products.txt`);
-    const data = await fs.promises.readFile(filePath, 'utf-8');
-    return JSON.parse(data);
+    const data = await fs.promises.writeFile(filePath, productsString); //it writes the content poductsString in path filePath
 }
 
 
-//Check if product exists or not / return -1 if the id doesnot exists
+//Check if product exists or not / return -1 if the id does not exists
+//or return position of object in array
 function productExist(objProducts, idInt) {
     let productIndex = objProducts.products.map((element) => element.id).indexOf(idInt);
     return productIndex;
 }
 
+//get object objProducts and 
 function readProducts(req, res) {
-    readFile().then((objProducts) => {
-        res.send(objProducts.products)
+    readFile().then((objProducts) => { 
+        res.status(200).json(objProducts.products) //Display Object
     })
 }
 
 function readProductsById(req, res) {
     readFile().then((objProducts) => {
-        const { productId } = req.params;
+        const { productId } = req.params; //destructuring
         const idInt = parseInt(productId);
-        let productIndex = objProducts.products.map((element) => element.id).indexOf(idInt);
+        let productIndex = productExist(objProducts, idInt); //if exist, save the position of object else save -1
 
-        res.send(objProducts.products[productIndex]);
+        if (productIndex != -1) {
+            res.status(200).json(objProducts.products[productIndex])
+        } else {
+            res.status(404).json({
+                message: "Product does not exist"
+            })
+        }
     })
 }
 
@@ -73,16 +90,19 @@ function addProduct(req, res) {
 
         if (productExist(objProducts, idInt) == -1) {
             objProducts.products.push(product);
-            res.json(objProducts);
+            res.status(201).json({
+                messaje: 'Created',
+                data: product
+            });
+
             const productsString = JSON.stringify(objProducts);
 
-            const writeFile = async () => {
-                const filePath = path.resolve(`${__dirname}/products.txt`);
-                const data = await fs.promises.writeFile(filePath, productsString);
-            }
-            writeFile();
+            writeFile(productsString);
+
         } else {
-            res.json("Product already exist");
+            res.status(404).json({
+                message: "Id already exist"
+            });
         }
 
     })
@@ -96,19 +116,19 @@ function deleteProduct(req, res) {
         let productIndex = productExist(objProducts, idInt)
 
         if (productExist(objProducts, idInt) != -1) {
-            res.json(`Product ${objProducts.products[productIndex].name} was delete`);
+            res.status(200).json({
+                message: `Product ${objProducts.products[productIndex].name} was delete`
+            });
             objProducts.products.splice(productIndex, 1);
+
             const productsString = JSON.stringify(objProducts)
 
-            const writeFile = async () => {
-                const filePath = path.resolve(`${__dirname}/products.txt`);
-                const data = await fs.promises.writeFile(filePath, productsString);
-            }
-            writeFile();
+            writeFile(productsString);
 
         } else {
-            res.json("Product does not exist")
-            console.log('Product does not exist')
+            res.status(404).json({
+                message: "Product does not exist"
+            })
         }
 
     })
@@ -117,15 +137,22 @@ function deleteProduct(req, res) {
 function updateProduct(req, res) {
 
     readFile().then((objProducts) => {
-        
+        const { productId } = req.params;
+        const idInt = parseInt(productId);
         const updateProduct = req.body;
-        const idInt = parseInt(updateProduct.id);
 
         if (productExist(objProducts, idInt) != -1) {
             objProducts.products[productExist(objProducts, idInt)] = updateProduct;
             res.json(objProducts);
+
+            const productsString = JSON.stringify(objProducts);
+
+            writeFile(productsString);
+
         } else {
-            res.json("Product does not exists")
+            res.status(401).json({
+                message: "Product does not exists"
+            })
         }
     })
 }
