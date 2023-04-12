@@ -5,11 +5,11 @@ const path = require("path");
 const http = require("http");
 const express = require("express");
 const { stringify } = require("querystring");
+const { v4: uuidv4 } = require("uuid");
 
-const { errors, errorHandler } = require("./middlewares/error.handler")
-const { error } = require("console");
-
-const joi = require("joi");
+const { errors, errorHandler } = require("./middlewares/error.handler");
+const { createProductValidation, updateProductValidation, getProductValidation } = require("./validation/products.validation");
+const validatorHandler = require("./middlewares/validator.handler");
 
 const PORT = 3000;
 
@@ -19,21 +19,26 @@ app.use(express.json());
 
 
 app.get("/api/v1/products", (req, res) => {
+    console.log(uuidv4());
     readProducts(req, res);
 })
 
 
-app.get("/api/v1/products/:productId", (req, res, next) => {
-    try {
-        readProductsById(req, res);  
-    } catch (error) {
-        next(error);
-    }    
-  
-})
+app.get("/api/v1/products/:id", 
+    validatorHandler(getProductValidation, 'params'),
+    (req, res, next) => {
+        try {
+            readProductsById(req, res);  
+        } catch (error) {
+            next(error);
+        }    
+    }
+)
 
 
-app.post("/api/v1/products", (req, res, next) => {
+app.post("/api/v1/products",
+    validatorHandler(createProductValidation, 'body'), 
+    (req, res, next) => {
     try {
         addProduct(req, res);
     } catch (error) {
@@ -42,7 +47,7 @@ app.post("/api/v1/products", (req, res, next) => {
 })
 
 
-app.delete("/api/v1/products/:productId", (req, res) => {
+app.delete("/api/v1/products/:id", (req, res) => {
     try {
         deleteProduct(req, res);
     } catch (error) {
@@ -51,13 +56,17 @@ app.delete("/api/v1/products/:productId", (req, res) => {
 })
 
 
-app.patch("/api/v1/products/:productId", (req, res) => {
-    try {
-        updateProduct(req, res);
-    } catch (error) {
-        next(error);
+app.patch("/api/v1/products/:id", 
+    validatorHandler(getProductValidation, "params"), 
+    validatorHandler(updateProductValidation, "body"),
+    (req, res) => {
+        try {
+            updateProduct(req, res);
+        } catch (error) {
+            next(error);
+        }
     }
-})
+)
 
 
 
@@ -93,9 +102,9 @@ function readProductsById(req, res, next) {
 
     readFile().then((objProducts) => {
         
-        const { productId } = req.params; //destructuring
-        const idInt = parseInt(productId);
-        let productIndex = productExist(objProducts, idInt); //if exist, save the position of object else save -1
+        const { id } = req.params; //destructuring
+       
+        let productIndex = productExist(objProducts, id); //if exist, save the position of object else save -1
 
         if (productIndex != -1) {
             res.status(200).json(objProducts.products[productIndex])
@@ -109,16 +118,15 @@ function readProductsById(req, res, next) {
 
 function addProduct(req, res) {
     readFile().then((objProducts) => {
-
         const product = req.body;
-        const idInt = parseInt(product.id);
+        const id = {id:uuidv4()};
+        const newProduct = {...id, ...product};
 
-
-        if (productExist(objProducts, idInt) == -1) {
-            objProducts.products.push(product);
+        if (productExist(objProducts, id) == -1) {
+            objProducts.products.push(newProduct);
             res.status(201).json({
                 messaje: 'Created',
-                data: product
+                data: newProduct
             });
 
             const productsString = JSON.stringify(objProducts);
@@ -130,18 +138,17 @@ function addProduct(req, res) {
                 message: "Id already exist"
             });
         }
-
     })
 }
 
 function deleteProduct(req, res) {
     readFile().then((objProducts) => {
 
-        const { productId } = req.params;
-        const idInt = parseInt(productId);
-        let productIndex = productExist(objProducts, idInt)
+        const { id } = req.params;
+        
+        let productIndex = productExist(objProducts, id)
 
-        if (productExist(objProducts, idInt) != -1) {
+        if (productIndex != -1) {
             res.status(200).json({
                 message: `Product ${objProducts.products[productIndex].name} was delete`
             });
@@ -156,17 +163,16 @@ function deleteProduct(req, res) {
                 message: "Product does not exist"
             })
         }
-
     })
 }
 
 function updateProduct(req, res) {
 
     readFile().then((objProducts) => {
-        const { productId } = req.params;
-        const idInt = parseInt(productId);
+        const { id } = req.params;
+        
         const updateProduct = req.body;
-        const indexProduct = productExist(objProducts, idInt)
+        const indexProduct = productExist(objProducts, id)
 
         if (indexProduct != -1) {
             const product = objProducts.products[indexProduct];
